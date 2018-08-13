@@ -106,11 +106,21 @@ namespace dxvk {
       if (filter.testAdapter(adapter))
         result.push_back(adapter);
     }
+
+    const auto preferred_adapter = env::getEnvVar(L"DXVK_DEFAULT_ADAPTER");
+    Logger::info(std::string("Default adapter=:") + preferred_adapter);
     
     std::sort(result.begin(), result.end(),
-      [this] (const Rc<DxvkAdapter>& a, const Rc<DxvkAdapter>& b) -> bool {
-        return a->deviceProperties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+      [this, preferred_adapter] (const Rc<DxvkAdapter>& a, const Rc<DxvkAdapter>& b) -> bool {
+      	const auto a_is_preferred = (preferred_adapter == a->deviceProperties().deviceName);
+      	const auto b_is_preferred = (preferred_adapter == b->deviceProperties().deviceName);
+      	
+      	if (a_is_preferred == b_is_preferred) {
+          return a->deviceProperties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
             && b->deviceProperties().deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+        }
+        
+        return (a_is_preferred);
       });
     
     if (result.size() == 0) {
